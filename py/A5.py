@@ -1,57 +1,32 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# 
-
-# In[1]:
-
-
-#importing libraries
 from tensorflow import keras
- 
 from keras.preprocessing import text
-from keras.utils import to_categorical  # Correct import
-
+from keras.utils import to_categorical
 from keras.preprocessing import sequence
 from keras.utils import pad_sequences
 import numpy as np
 import pandas as pd
+from sklearn.metrics.pairwise import euclidean_distances
 
-
-# In[2]:
-
-
-#taking random sentences as data
+# Data preparation
 data = """Deep learning (also known as deep structured learning) is part of a broader family of machine learning methods based on artificial neural networks with representation learning. Learning can be supervised, semi-supervised or unsupervised. 
 Deep-learning architectures such as deep neural networks, deep belief networks, deep reinforcement learning, recurrent neural networks, convolutional neural networks and Transformers have been applied to fields including computer vision, speech recognition, natural language processing, machine translation, bioinformatics, drug design, medical image analysis, climate science, material inspection and board game programs, where they have produced results comparable to and in some cases surpassing human expert performance.
 """
 dl_data = data.split()
 
-
-# In[3]:
-
-
-#tokenization
+# Tokenization
 tokenizer = text.Tokenizer()
 tokenizer.fit_on_texts(dl_data)
 word2id = tokenizer.word_index
 
 word2id['PAD'] = 0
-id2word = {v:k for k, v in word2id.items()}
+id2word = {v: k for k, v in word2id.items()}
 wids = [[word2id[w] for w in text.text_to_word_sequence(doc)] for doc in dl_data]
 
 vocab_size = len(word2id)
 embed_size = 100
 window_size = 2 
 
-print('Vocabulary Size:', vocab_size)
-print('Vocabulary Sample:', list(word2id.items())[:10])
-
-
-# In[4]:
-
-
-# Define your generate_context_word_pairs function
+# Generate training data
 def generate_context_word_pairs(corpus, window_size=2, vocab_size=None):
     context_length = window_size * 2
 
@@ -68,49 +43,18 @@ def generate_context_word_pairs(corpus, window_size=2, vocab_size=None):
             label_word.append(word)
 
             x = pad_sequences(context_words, maxlen=context_length)
-            y = to_categorical(label_word, num_classes=vocab_size)  # Use to_categorical
+            y = to_categorical(label_word, num_classes=vocab_size)
 
             yield (x, y)
 
-# Usage example
-i = 0
-for x, y in generate_context_word_pairs(wids, window_size=window_size, vocab_size=vocab_size):
-    # Your code to process x and y goes here
-    # You can remove the "if not in x[0]:" line as it's not necessary
-    # Print statements for context and target are commented out
-    # Adjust your processing logic here
-    pass
-
-    i += 1
-    if i == 10:
-        break
-
-
-# In[5]:
-
-
-#model building
-import keras.backend as K
-from keras.models import Sequential
-from keras.layers import Dense, Embedding, Lambda
-
-cbow = Sequential()
-cbow.add(Embedding(input_dim=vocab_size, output_dim=embed_size, input_length=window_size*2))
-cbow.add(Lambda(lambda x: K.mean(x, axis=1), output_shape=(embed_size,)))
-cbow.add(Dense(vocab_size, activation='softmax'))
+# Model building
+cbow = keras.models.Sequential()
+cbow.add(keras.layers.Embedding(input_dim=vocab_size, output_dim=embed_size, input_length=window_size*2))
+cbow.add(keras.layers.Lambda(lambda x: keras.backend.mean(x, axis=1), output_shape=(embed_size,)))
+cbow.add(keras.layers.Dense(vocab_size, activation='softmax'))
 cbow.compile(loss='categorical_crossentropy', optimizer='rmsprop')
 
-print(cbow.summary())
-
-# from IPython.display import SVG
-# from keras.utils.vis_utils import model_to_dot
-
-# SVG(model_to_dot(cbow, show_shapes=True, show_layer_names=False, rankdir='TB').create(prog='dot', format='svg'))
-
-
-# In[6]:
-
-
+# Training the model
 for epoch in range(1, 6):
     loss = 0.
     i = 0
@@ -123,21 +67,10 @@ for epoch in range(1, 6):
     print('Epoch:', epoch, '\tLoss:', loss)
     print()
 
-
-# In[7]:
-
-
+# Output
 weights = cbow.get_weights()[0]
 weights = weights[1:]
 print(weights.shape)
-
-pd.DataFrame(weights, index=list(id2word.values())[1:]).head()
-
-
-# In[8]:
-
-
-from sklearn.metrics.pairwise import euclidean_distances
 
 distance_matrix = euclidean_distances(weights)
 print(distance_matrix.shape)
@@ -145,29 +78,4 @@ print(distance_matrix.shape)
 similar_words = {search_term: [id2word[idx] for idx in distance_matrix[word2id[search_term]-1].argsort()[1:6]+1] 
                    for search_term in ['deep']}
 
-similar_words
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
+print(similar_words)
