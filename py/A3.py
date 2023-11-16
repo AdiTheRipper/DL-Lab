@@ -13,7 +13,7 @@ import numpy as np
 train_images, test_images = train_images / 255.0, test_images / 255.0
 
 # # Displaying images of specific categories
-# class_names = ['airplane', 'automobile', 'bird', 'cat', 'deer','dog', 'frog', 'horse', 'ship', 'truck']
+class_names = ['airplane', 'automobile', 'bird', 'cat', 'deer','dog', 'frog', 'horse', 'ship', 'truck']
 # plt.figure(figsize=(10, 10))
 # for i in range(10):
 #     plt.subplot(5, 5, i+1)
